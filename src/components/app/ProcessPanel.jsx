@@ -25,7 +25,8 @@ export default function ProcessPanel({ proc, disabled, onProcess, onSaveName }) 
             <input className="input mono" readOnly value={result.url} onFocus={(e) => e.target.select()} />
             <CopyButton text={result.url} />
           </div>
-          {result.local && <p className="warn small">Upload failed. This link only works in this browser.</p>}
+          {result.local && <p className="warn small">Public upload failed. This link only works in this browser.</p>}
+          <a className="btn secondary" href={result.downloadUrl || result.url} download="video.json">Download JSON</a>
           <button className="btn secondary" onClick={onSaveName}>Save with name</button>
         </div>
       )}

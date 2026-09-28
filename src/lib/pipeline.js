@@ -111,12 +111,26 @@ export async function runPipeline({ getSource, settings, fileName, report }) {
   st('uploading', 6, 0, 0, true);
   const base = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_') || 'video';
   const file = new File([json], base + '_' + size + '.json', { type: 'application/json' });
+  const downloadUrl = URL.createObjectURL(file);
   let url, local = false;
   try {
-    url = (await db.integrations.Core.UploadPublicFile({ file })).file_url;
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: json,
+    });
+    if (!response.ok) throw new Error(`Public upload failed: HTTP ${response.status}`);
+    const uploaded = await response.json();
+    if (!uploaded.url || !uploaded.url.startsWith('https://')) throw new Error('Invalid public URL');
+    url = uploaded.url;
   } catch {
-    url = URL.createObjectURL(file);
-    local = true;
+    try {
+      url = (await db.integrations.Core.UploadPublicFile({ file })).file_url;
+      if (!url || !url.startsWith('https://')) throw new Error('Invalid Base44 URL');
+    } catch {
+      url = downloadUrl;
+      local = true;
+    }
   }
   mark('Upload', t);
 
@@ -124,5 +138,5 @@ export async function runPipeline({ getSource, settings, fileName, report }) {
   perf.forEach(([k, v]) => console.log('[PERF] ' + k + ': ' + Math.round(v) + 'ms'));
   console.log('[PERF] TOTAL: ' + Math.round(total) + 'ms');
   console.log('[PERF] Workers: ' + chunks.length + '/' + workers.length);
-  return { url, local, frames: durations.length, paletteSize: palette.length / 3, bytes: file.size };
+  return { url, downloadUrl, local, frames: durations.length, paletteSize: palette.length / 3, bytes: file.size };
 }
