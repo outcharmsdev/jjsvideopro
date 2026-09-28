@@ -1,6 +1,11 @@
 
 const isNode = typeof window === 'undefined';
 
+const getAccessToken = () => {
+	if (isNode) return null;
+	return window.localStorage.getItem('base44_access_token') || window.localStorage.getItem('token');
+};
+
 const isClearAccessTokenRequested = () =>
 	!isNode && new URLSearchParams(window.location.search).get("clear_access_token") === 'true';
 
